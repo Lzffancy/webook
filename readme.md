@@ -28,5 +28,20 @@ Edit is ok
 
 profile
 
+```
+127.0.0.1:8082/users/profile
+```
+
+GET
+return
+
+```
+{
+    "nickname": "fancy",
+    "email": "test1@qq.com",
+    "aboutMe": "hhahah",
+    "birthday": "2023-10-14"
+}
+```
 
 ![image-20231217133941296](C:\Users\fancy\AppData\Roaming\Typora\typora-user-images\image-20231217133941296.png)
