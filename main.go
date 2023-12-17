@@ -26,7 +26,7 @@ func main() {
 
 func initDB() *gorm.DB {
 	// db rest
-	db, err := gorm.Open(mysql.Open("root:root@tcp(192.168.0.108:13316)/webook"))
+	db, err := gorm.Open(mysql.Open("root:123@root@tcp(192.168.0.110:13316)/webook"))
 	if err != nil {
 		panic(err)
 	}

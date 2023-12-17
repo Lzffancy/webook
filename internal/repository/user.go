@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 	"webook/internal/domain"
 	"webook/internal/repository/dao"
 )
@@ -46,6 +47,9 @@ func (repo *UserRepository) toDomain(u dao.User) domain.User {
 		Id:       u.Id,
 		Email:    u.Email,
 		Password: u.Password,
+		AboutMe:  u.AboutMe,
+		Nickname: u.Nickname,
+		Birthday: time.UnixMilli(u.Birthday),
 	}
 }
 

@@ -26,3 +26,7 @@ Edit is ok
 
 ## 2.显示用户信息
 
+profile
+
+
+![image-20231217133941296](C:\Users\fancy\AppData\Roaming\Typora\typora-user-images\image-20231217133941296.png)

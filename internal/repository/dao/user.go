@@ -3,6 +3,8 @@ package dao
 import (
 	"context"
 	"errors"
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -42,10 +44,10 @@ type User struct {
 	Ctime int64
 	Utime int64
 	//json
-	Addr     string
+	Addr     string `gorm:"type=varchar(128)"`
 	Nickname string `gorm:"type=varchar(128)"`
 	// YYYY-MM-DD
-	Birthday int64
+	Birthday int64  `gorm:"null"`
 	AboutMe  string `gorm:"type=varchar(4096)"`
 }
 
@@ -76,8 +78,24 @@ func (dao *UserDAO) UpdateById(ctx context.Context, entity User) error {
 		}).Error
 }
 
+func printStructFields(s interface{}) {
+	v := reflect.ValueOf(s)
+	t := v.Type()
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldName := t.Field(i).Name
+		fieldValue := field.Interface()
+
+		fmt.Printf("%s: %v\n", fieldName, fieldValue)
+	}
+}
 func (dao *UserDAO) FindById(ctx context.Context, uid int64) (User, error) {
 	var res User
 	err := dao.db.WithContext(ctx).Where("id = ?", uid).First(&res).Error
+	result := dao.db.Debug().WithContext(ctx).Where("id = ?", uid).First(&res)
+	printStructFields(res)
+	print("----FindById sql----- ")
+	println(result.Statement.SQL.String())
 	return res, err
 }

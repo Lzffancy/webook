@@ -189,6 +189,7 @@ func (h *UserHandler) Profile(ctx *gin.Context) {
 	uid := sess.Get("userId")
 	if uid == nil {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
+		//一般不会走到这里，中间件校验了登录态
 		println("-----无效或者登录态失败byEdit----")
 		return
 	}
