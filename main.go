@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -40,12 +40,12 @@ func initDB() *gorm.DB {
 func initWebServer() *gin.Engine {
 	// hdl := web.NewUserHandler()
 	server := gin.Default()
-
 	server.Use( //注册middleware，接受*Context作为参数即是HandlerFunc (中间件)
 		cors.New(cors.Config{
 			AllowCredentials: true,
 			AllowOrigins:     []string{"http://loaclhots:3000"},
 			AllowHeaders:     []string{"Content-Type", "Authorization"},
+			ExposeHeaders:    []string{"x-jwt-token"},
 			AllowOriginFunc:  func(origin string) bool { return true },
 			MaxAge:           12 * time.Hour, //预检有效期，此期间不需要再Option请求
 		}),
@@ -54,13 +54,9 @@ func initWebServer() *gin.Engine {
 			println("------my middleware!----")
 		},
 	)
-
-	login := &middleware.LoginMiddlewareBuilder{}
-	//初始化session id 使用cookies存放
-	store := cookie.NewStore([]byte("secret"))
-	server.Use(sessions.Sessions("ssid", store), login.CheckLogin())
-
+	useJWT(server)
 	return server
+
 }
 
 func initUserHdl(db *gorm.DB, server *gin.Engine) {
@@ -69,4 +65,25 @@ func initUserHdl(db *gorm.DB, server *gin.Engine) {
 	us := service.NewUserService(ur)
 	hdl := web.NewUserHandler(us)
 	hdl.RegisterRouters(server)
+}
+
+func useJWT(server *gin.Engine) {
+	login := &middleware.LoginJWTMiddlewareBuilder{}
+	server.Use(login.CheckLogin())
+}
+
+func useSession(server *gin.Engine) {
+	login := &middleware.LoginMiddlewareBuilder{}
+	//初始化session id 使用cookies存放
+	// store := cookie.NewStore([]byte("secret"))
+	// server.Use(sessions.Sessions("ssid", store), login.CheckLogin())
+
+	//自带的redis sesion使用了aes加密
+	store, err := redis.NewStore(16, "tcp", "192.168.0.110:6379", "", []byte("REHGZQ0CA8Z528LF7ULLOX9GJ9U6XA7Y"), []byte("REHGZQ0CA8Z528LF7ULLOX9GJ9U6XA71"))
+	if err != nil {
+		print(err)
+		panic("redis seesion error")
+	}
+
+	server.Use(sessions.Sessions("ssid", store), login.CheckLogin())
 }

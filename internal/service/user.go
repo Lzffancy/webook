@@ -3,10 +3,9 @@ package service
 import (
 	"context"
 	"errors"
+	"golang.org/x/crypto/bcrypt"
 	"webook/internal/domain"
 	"webook/internal/repository"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 var ErrDuplicateEmail = repository.ErrDuplicateEmail

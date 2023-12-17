@@ -86,16 +86,15 @@ func printStructFields(s interface{}) {
 		field := v.Field(i)
 		fieldName := t.Field(i).Name
 		fieldValue := field.Interface()
-
 		fmt.Printf("%s: %v\n", fieldName, fieldValue)
 	}
 }
 func (dao *UserDAO) FindById(ctx context.Context, uid int64) (User, error) {
 	var res User
 	err := dao.db.WithContext(ctx).Where("id = ?", uid).First(&res).Error
-	result := dao.db.Debug().WithContext(ctx).Where("id = ?", uid).First(&res)
-	printStructFields(res)
+	//result := dao.db.Debug().WithContext(ctx).Where("id = ?", uid).First(&res)
+	//printStructFields(res)
 	print("----FindById sql----- ")
-	println(result.Statement.SQL.String())
+	//println(result.Statement.SQL.String())
 	return res, err
 }

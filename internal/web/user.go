@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 	"webook/internal/domain"
@@ -9,6 +10,7 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	jwt "github.com/golang-jwt/jwt/v5"
 )
 
 const (
@@ -17,6 +19,13 @@ const (
 	userIdKey            = "userId"
 	bizLogin             = "login"
 )
+
+var JWTKey = []byte("sepwcfkncusmhobodddguzfijdezgsnu")
+
+type UserClaims struct {
+	jwt.RegisteredClaims
+	Uid int64
+}
 
 func NewUserHandler(svc *service.UserService) *UserHandler {
 	return &UserHandler{
@@ -34,7 +43,9 @@ type UserHandler struct {
 
 func (h *UserHandler) RegisterRouters(server *gin.Engine) {
 	server.POST("/users/signup", h.SignUp)
-	server.POST("/users/login", h.Login)
+	// server.POST("/users/login", h.Login)
+
+	server.POST("/users/login", h.LoginJWT)
 	server.POST("/users/edit", h.Edit)
 	server.GET("/users/profile", h.Profile)
 
@@ -119,14 +130,56 @@ func (h *UserHandler) Login(ctx *gin.Context) {
 		sess := sessions.Default(ctx)
 		sess.Set("userId", u.Id)
 		sess.Options(sessions.Options{
-			MaxAge: 60 * 60,
+			MaxAge: 20, //cooke and session
+			//长短token 设计续期
 		})
 		err = sess.Save()
 		if err != nil {
+			fmt.Println("login session sys error", err)
 			ctx.String(http.StatusOK, "login session sys error")
 			return
 		}
 		ctx.String(http.StatusOK, "login ok")
+	case service.ErrInvalidUserOrPassword:
+		ctx.String(http.StatusOK, "login InvalidUserOrPassword")
+	default:
+		ctx.String(http.StatusOK, "login sys error")
+
+	}
+
+}
+
+// jwt登录态
+func (h *UserHandler) LoginJWT(ctx *gin.Context) {
+	type Req struct {
+		Email    string `json:"email"` //字段标签，这个Email在json中是email
+		Password string `json:"password"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		ctx.String(http.StatusOK, "login error 0 ")
+		return
+	}
+	u, err := h.svc.Login(ctx, req.Email, req.Password)
+
+	switch err {
+	case nil:
+		uc := UserClaims{
+			Uid: u.Id,
+			RegisteredClaims: jwt.RegisteredClaims{
+				//30分钟过期
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
+			},
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, uc)
+		tokenStr, err := token.SignedString(JWTKey)
+		if err != nil {
+			fmt.Print(err)
+			ctx.String(http.StatusOK, "login sys error jwt")
+		}
+		//允许前端访问的头部
+		ctx.Header("x-jwt-token", tokenStr)
+		ctx.String(http.StatusOK, "jwt login ok")
 	case service.ErrInvalidUserOrPassword:
 		ctx.String(http.StatusOK, "login InvalidUserOrPassword")
 	default:
@@ -187,6 +240,7 @@ func (h *UserHandler) Profile(ctx *gin.Context) {
 
 	sess := sessions.Default(ctx)
 	uid := sess.Get("userId")
+	// uc := ctx.MustGet("user").(UserClaims)
 	if uid == nil {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		//一般不会走到这里，中间件校验了登录态
