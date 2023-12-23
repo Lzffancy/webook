@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"time"
 	"webook/internal/repository"
 	"webook/internal/repository/dao"
@@ -8,18 +9,27 @@ import (
 	"webook/internal/web"
 	"webook/internal/web/middleware"
 
+	"webook/pkg/ginx/middleware/ratelimit"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/redis"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	redis "github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 func main() {
-	db := initDB()
-	server := initWebServer()
-	initUserHdl(db, server)
+	// db := initDB()
+	// server := initWebServer()
+	// initUserHdl(db, server)
+	// server.Run(":8082")
+
+	server := gin.Default()
+	server.GET("/hello", func(ctx *gin.Context) {
+		ctx.String(http.StatusOK, "hello ,docker is ok!")
+	})
 	server.Run(":8082")
 
 }
@@ -54,6 +64,11 @@ func initWebServer() *gin.Engine {
 			println("------my middleware!----")
 		},
 	)
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "192.168.0.110:6379",
+	})
+
+	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 1).Build())
 	useJWT(server)
 	return server
 
@@ -75,15 +90,15 @@ func useJWT(server *gin.Engine) {
 func useSession(server *gin.Engine) {
 	login := &middleware.LoginMiddlewareBuilder{}
 	//初始化session id 使用cookies存放
-	// store := cookie.NewStore([]byte("secret"))
-	// server.Use(sessions.Sessions("ssid", store), login.CheckLogin())
+	store := cookie.NewStore([]byte("secret"))
+	server.Use(sessions.Sessions("ssid", store), login.CheckLogin())
 
 	//自带的redis sesion使用了aes加密
-	store, err := redis.NewStore(16, "tcp", "192.168.0.110:6379", "", []byte("REHGZQ0CA8Z528LF7ULLOX9GJ9U6XA7Y"), []byte("REHGZQ0CA8Z528LF7ULLOX9GJ9U6XA71"))
-	if err != nil {
-		print(err)
-		panic("redis seesion error")
-	}
+	// store, err := redis.NewStore(16, "tcp", "192.168.0.110:6379", "", []byte("REHGZQ0CA8Z528LF7ULLOX9GJ9U6XA7Y"), []byte("REHGZQ0CA8Z528LF7ULLOX9GJ9U6XA71"))
+	// if err != nil {
+	// 	print(err)
+	// 	panic("redis seesion error")
+	// }
 
 	server.Use(sessions.Sessions("ssid", store), login.CheckLogin())
 }

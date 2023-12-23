@@ -24,7 +24,8 @@ var JWTKey = []byte("sepwcfkncusmhobodddguzfijdezgsnu")
 
 type UserClaims struct {
 	jwt.RegisteredClaims
-	Uid int64
+	Uid       int64
+	UserAgent string
 }
 
 func NewUserHandler(svc *service.UserService) *UserHandler {
@@ -165,7 +166,8 @@ func (h *UserHandler) LoginJWT(ctx *gin.Context) {
 	switch err {
 	case nil:
 		uc := UserClaims{
-			Uid: u.Id,
+			Uid:       u.Id,
+			UserAgent: ctx.GetHeader("User-Agent"),
 			RegisteredClaims: jwt.RegisteredClaims{
 				//30分钟过期
 				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
@@ -209,19 +211,21 @@ func (h *UserHandler) Edit(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "Birthday is not ok")
 		return
 	}
-	sess := sessions.Default(ctx)
-	u := sess.Get("userId")
-	if u == nil {
-		ctx.AbortWithStatus(http.StatusUnauthorized)
-		println("-----无效或者登录态失败byEdit----")
-		return
-	}
-	uid, ok := u.(int64)
-	if !ok {
-		// 类型转换失败
-		ctx.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
+	// sess := sessions.Default(ctx)
+	// u := sess.Get("userId")
+	// u := ctx.MustGet("user")
+	uid := ctx.MustGet("user").(UserClaims).Uid
+	// if uid == nil {
+	// 	ctx.AbortWithStatus(http.StatusUnauthorized)
+	// 	println("-----无效或者登录态失败byEdit----")
+	// 	return
+	// }
+	// uid, ok := u.(int64)
+	// if !ok {
+	// 	// 类型转换失败
+	// 	ctx.AbortWithStatus(http.StatusUnauthorized)
+	// 	return
+	// }
 
 	err = h.svc.UpdateNonSensitiveInfo(ctx, domain.User{
 		Id:       uid,
@@ -237,24 +241,26 @@ func (h *UserHandler) Edit(ctx *gin.Context) {
 
 }
 func (h *UserHandler) Profile(ctx *gin.Context) {
-
-	sess := sessions.Default(ctx)
-	uid := sess.Get("userId")
+	// sess := sessions.Default(ctx)
+	// uid := sess.Get("userId")
+	// uid := ctx.MustGet("user")
 	// uc := ctx.MustGet("user").(UserClaims)
-	if uid == nil {
-		ctx.AbortWithStatus(http.StatusUnauthorized)
-		//一般不会走到这里，中间件校验了登录态
-		println("-----无效或者登录态失败byEdit----")
-		return
-	}
-	uid64, ok := uid.(int64)
-	if !ok {
-		// 类型转换失败
-		ctx.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-	println("uin id ", uid64)
-	u, err := h.svc.FindById(ctx, uid64)
+	uid := ctx.MustGet("user").(UserClaims).Uid
+	// if uid == nil {
+	// 	ctx.AbortWithStatus(http.StatusUnauthorized)
+	// 	//一般不会走到这里，中间件校验了登录态
+	// 	println("-----无效或者登录态失败byProfile----")
+	// 	return
+	// }
+	// uid64, ok := uid.(int64)
+	// if !ok {
+	// 	// 类型转换失败
+	// 	println("-----类型转换失败byProfile----")
+	// 	ctx.AbortWithStatus(http.StatusUnauthorized)
+	// 	return
+	// }
+	println("uin id ", uid)
+	u, err := h.svc.FindById(ctx, uid)
 	if err != nil {
 		ctx.String(http.StatusOK, "sys error profile")
 		return
