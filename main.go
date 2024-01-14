@@ -36,7 +36,7 @@ func main() {
 
 func initDB() *gorm.DB {
 	// db rest
-	db, err := gorm.Open(mysql.Open("root:123@root@tcp(192.168.0.110:13316)/webook"))
+	db, err := gorm.Open(mysql.Open("root:123@root@tcp(192.168.0.128:13316)/webook"))
 	if err != nil {
 		panic(err)
 	}
@@ -65,7 +65,7 @@ func initWebServer() *gin.Engine {
 		},
 	)
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: "192.168.0.110:6379",
+		Addr: "192.168.0.128:6379",
 	})
 
 	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 1).Build())
